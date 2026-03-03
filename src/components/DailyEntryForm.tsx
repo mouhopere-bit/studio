@@ -39,12 +39,23 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
     defaultValues: {
       type: 'Ciment',
       quantity: '',
-      time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      time: '',
       observations: '',
     },
   });
 
   const watchType = form.watch('type');
+
+  // Defer setting the current time to avoid hydration mismatch
+  React.useEffect(() => {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+    form.setValue('time', currentTime);
+  }, [form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onAdd({

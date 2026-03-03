@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { BackupManager } from '@/components/BackupManager';
 
 export default function Home() {
+  const [mounted, setMounted] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [entries, setEntries] = React.useState<ProductionEntry[]>([]);
   const [allEntries, setAllEntries] = React.useState<ProductionEntry[]>([]);
@@ -31,6 +32,7 @@ export default function Home() {
   }, [selectedDate]);
 
   React.useEffect(() => {
+    setMounted(true);
     loadData();
   }, [loadData]);
 
@@ -64,6 +66,17 @@ export default function Home() {
       return acc;
     }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
   }, [entries]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Database className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
+          <h1 className="text-xl font-semibold">Chargement du système...</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-12">
