@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSearchParams } from 'next/navigation';
@@ -9,7 +9,7 @@ import { generateDailyReport } from '@/lib/pdf-gen';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu, Send, CheckCircle2, Lock, Share2, Eye } from 'lucide-react';
+import { FileDown, Trash2, Calendar as CalendarIcon, Send, CheckCircle2, Lock, Share2, Eye } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
@@ -29,7 +29,7 @@ const AxiomeLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function Home() {
+function HomeContent() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -75,11 +75,10 @@ export default function Home() {
     if (!db || !user || !productionDayRef || !dateStr || isReadOnly) return;
 
     if (dayInfo?.isSubmitted) {
-      toast({ variant: 'destructive', title: "Action impossible", description: "Le rapport est déjà soumis." });
+      toast({ variant: 'destructive', title: 'Action impossible', description: 'Le rapport est déjà soumis.' });
       return;
     }
 
-    // S'assurer que le jour de production existe
     setDocumentNonBlocking(productionDayRef, {
       id: dateStr,
       employeeId: user.uid,
@@ -90,7 +89,6 @@ export default function Home() {
 
     const colRef = collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
     
-    // Nettoyer les données undefined pour Firestore
     const payload = {
       ...data,
       productionDayId: dateStr,
@@ -105,14 +103,14 @@ export default function Home() {
     });
 
     addDocumentNonBlocking(colRef, payload);
-    toast({ title: "Décharge enregistrée" });
+    toast({ title: 'Décharge enregistrée' });
   };
 
   const handleDeleteEntry = (entryId: string) => {
     if (!db || !user || isReadOnly || dayInfo?.isSubmitted) return;
     const entryRef = doc(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges', entryId);
     deleteDocumentNonBlocking(entryRef);
-    toast({ title: "Décharge supprimée" });
+    toast({ title: 'Décharge supprimée' });
   };
 
   const handleToggleSubmit = () => {
@@ -127,8 +125,8 @@ export default function Home() {
     }, { merge: true });
     
     toast({ 
-      title: newStatus ? "Rapport soumis" : "Rapport réouvert",
-      description: newStatus ? "Disponible pour consultation par le supérieur." : "Modifications autorisées."
+      title: newStatus ? 'Rapport soumis' : 'Rapport réouvert',
+      description: newStatus ? 'Disponible pour consultation par le supérieur.' : 'Modifications autorisées.'
     });
   };
 
@@ -137,7 +135,7 @@ export default function Home() {
     const url = new URL(window.location.origin);
     url.searchParams.set('empId', user.uid);
     navigator.clipboard.writeText(url.toString());
-    toast({ title: "Lien de partage copié !", description: "Envoyez ce lien à votre supérieur pour qu'il puisse voir ce rapport." });
+    toast({ title: 'Lien de partage copié !', description: 'Envoyez ce lien à votre supérieur pour qu\'il puisse voir ce rapport.' });
   };
 
   const totals = React.useMemo(() => {
@@ -223,11 +221,11 @@ export default function Home() {
               {!isReadOnly && (
                 <Button 
                   onClick={handleToggleSubmit}
-                  variant={dayInfo?.isSubmitted ? "outline" : "default"}
-                  className={!dayInfo?.isSubmitted ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                  variant={dayInfo?.isSubmitted ? 'outline' : 'default'}
+                  className={!dayInfo?.isSubmitted ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
                 >
                   {dayInfo?.isSubmitted ? <Lock className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                  {dayInfo?.isSubmitted ? "Réouvrir le rapport" : "Soumettre au supérieur"}
+                  {dayInfo?.isSubmitted ? 'Réouvrir le rapport' : 'Soumettre au supérieur'}
                 </Button>
               )}
               <Button 
@@ -249,7 +247,7 @@ export default function Home() {
               <CardContent className="flex items-center justify-center p-10 gap-4 text-slate-400">
                 <Lock className="w-6 h-6" />
                 <p className="font-medium text-sm">
-                  {isReadOnly ? "Vous consultez le rapport en lecture seule." : "Rapport soumis et verrouillé."}
+                  {isReadOnly ? 'Vous consultez le rapport en lecture seule.' : 'Rapport soumis et verrouillé.'}
                 </p>
               </CardContent>
             </Card>
@@ -348,5 +346,17 @@ export default function Home() {
       </SidebarInset>
       <Toaster />
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <AxiomeLogo className="w-16 h-16 text-primary animate-pulse" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
