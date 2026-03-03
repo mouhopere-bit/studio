@@ -19,6 +19,16 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 
+const AxiomeLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M7 21v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4" />
+    <path d="M21 21V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+    <path d="M3 10h18" />
+    <path d="M10 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" />
+    <circle cx="12" cy="14" r="1" fill="currentColor" />
+  </svg>
+);
+
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
@@ -154,7 +164,7 @@ export default function Home() {
   if (!isMounted || isUserLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Database className="w-12 h-12 text-primary animate-pulse" />
+        <AxiomeLogo className="w-16 h-16 text-primary animate-pulse" />
       </div>
     );
   }
@@ -171,7 +181,7 @@ export default function Home() {
         <header className="sticky top-0 z-30 bg-primary text-primary-foreground shadow-md h-16 flex items-center px-4 justify-between">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="bg-white/10 hover:bg-white/20">
-              <Menu className="w-5 h-5" />
+              <AxiomeLogo className="w-6 h-6" />
             </SidebarTrigger>
             <div className="flex flex-col">
               <h1 className="text-lg font-bold leading-tight">Axiome Production</h1>
@@ -206,7 +216,7 @@ export default function Home() {
                 <h2 className="text-xl font-bold text-slate-900 capitalize">
                   {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Données synchronisées</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Données synchronisées Cloud</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -263,7 +273,7 @@ export default function Home() {
                 <TableBody>
                   {isDayLoading || isEntriesLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground animate-pulse italic">Chargement du cloud...</TableCell>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground animate-pulse italic">Récupération des données cloud...</TableCell>
                     </TableRow>
                   ) : !entries || entries.length === 0 ? (
                     <TableRow>

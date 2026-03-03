@@ -16,6 +16,16 @@ import { LayoutDashboard, Database, User as UserIcon, LogOut } from 'lucide-reac
 import { useUser, useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 
+const AxiomeLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M7 21v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4" />
+    <path d="M21 21V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+    <path d="M3 10h18" />
+    <path d="M10 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" />
+    <circle cx="12" cy="14" r="1" fill="currentColor" />
+  </svg>
+);
+
 interface AppSidebarProps {
   entries: any[];
   selectedDate: Date;
@@ -56,11 +66,11 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
       <SidebarHeader className="p-6 bg-primary text-primary-foreground">
         <div className="flex items-center gap-4">
           <div className="bg-white/20 p-2.5 rounded-xl">
-            <Database className="w-6 h-6" />
+            <AxiomeLogo className="w-6 h-6" />
           </div>
           <div className="flex flex-col">
             <h2 className="font-bold text-lg">Axiome Cloud</h2>
-            <p className="text-[10px] uppercase tracking-widest opacity-70 font-bold">Gestion Production</p>
+            <p className="text-[10px] uppercase tracking-widest opacity-70 font-bold">Centrale à Béton</p>
           </div>
         </div>
       </SidebarHeader>
@@ -68,7 +78,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
       <SidebarContent className="p-4 space-y-6">
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-400 font-bold uppercase text-[10px] mb-2 tracking-widest">
-            Sélection de la date
+            Calendrier de Production
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <CalendarView 
@@ -88,7 +98,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
               <CardHeader className="p-4 border-b bg-white/50">
                 <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-slate-600">
                   <LayoutDashboard className="w-3.5 h-3.5 text-primary" />
-                  Statistiques
+                  Statistiques Journalières
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
@@ -123,7 +133,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
             <div className="flex flex-col min-w-0">
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Utilisateur</p>
               <p className="text-[11px] font-mono truncate text-slate-600">
-                {user?.isAnonymous ? 'Visiteur Anonyme' : user?.email || user?.uid.substring(0, 8)}
+                {user?.isAnonymous ? 'Visiteur' : user?.email || user?.uid.substring(0, 8)}
               </p>
             </div>
           </div>
