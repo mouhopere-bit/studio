@@ -1,0 +1,215 @@
+{
+  "entities": {
+    "Employee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Employee",
+      "type": "object",
+      "description": "Represents a single employee responsible for daily production entries. Although the application is for a single user, this entity helps to logically separate data in a shared environment and can be extended if more employees are added in the future.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Employee entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the employee."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "ProductionDay": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductionDay",
+      "type": "object",
+      "description": "Represents the aggregated production data for a specific day, including summary totals and submission status. It acts as a container for individual material discharges for that day.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProductionDay entity."
+        },
+        "employeeId": {
+          "type": "string",
+          "description": "Reference to the Employee who made these entries. (Relationship: Employee 1:N ProductionDay)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The calendar date for which the production data is recorded.",
+          "format": "date"
+        },
+        "isSubmitted": {
+          "type": "boolean",
+          "description": "Indicates if the daily report has been formally submitted by the employee for supervisor review."
+        },
+        "submissionTimestamp": {
+          "type": "string",
+          "description": "The date and time when the daily report was last submitted.",
+          "format": "date-time"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "The date and time when any discharge data for this day was last updated.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional general observations or notes for the entire day's production."
+        },
+        "totalCement": {
+          "type": "number",
+          "description": "Automatically calculated total quantity of 'Ciment' discharged for the day."
+        },
+        "totalAdjuvant": {
+          "type": "number",
+          "description": "Automatically calculated total quantity of 'Adjuvant' discharged for the day."
+        },
+        "totalGravel3_8": {
+          "type": "number",
+          "description": "Automatically calculated total quantity of 'Gravier 3/8' discharged for the day."
+        },
+        "totalGravel8_16": {
+          "type": "number",
+          "description": "Automatically calculated total quantity of 'Gravier 8/16' discharged for the day."
+        },
+        "totalGravel0_3": {
+          "type": "number",
+          "description": "Automatically calculated total quantity of 'Gravier 0/3' discharged for the day."
+        },
+        "grandTotal": {
+          "type": "number",
+          "description": "Automatically calculated grand total quantity of all materials discharged for the day."
+        }
+      },
+      "required": [
+        "id",
+        "employeeId",
+        "date",
+        "isSubmitted",
+        "lastUpdated"
+      ]
+    },
+    "Discharge": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Discharge",
+      "type": "object",
+      "description": "Represents a single record of material discharge for a given day, detailing the type of material, quantity, time, and optional observations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Discharge entity."
+        },
+        "productionDayId": {
+          "type": "string",
+          "description": "Reference to the ProductionDay to which this discharge belongs. (Relationship: ProductionDay 1:N Discharge)"
+        },
+        "materialType": {
+          "type": "string",
+          "description": "The type of material discharged (e.g., Ciment, Gravier, Adjuvant)."
+        },
+        "gravelSize": {
+          "type": "string",
+          "description": "The size of the gravel, applicable only if materialType is 'Gravier' (e.g., 3/8, 8/16, 0/3)."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the material discharged, allowing for decimal values."
+        },
+        "time": {
+          "type": "string",
+          "description": "The specific time when the discharge occurred.",
+          "format": "time"
+        },
+        "observations": {
+          "type": "string",
+          "description": "Optional textual observations or notes related to this specific discharge."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when this discharge record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when this discharge record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "productionDayId",
+        "materialType",
+        "quantity",
+        "time",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/employees/{employeeId}",
+        "definition": {
+          "entityName": "Employee",
+          "schema": {
+            "$ref": "#/backend/entities/Employee"
+          },
+          "description": "Top-level collection for employee profiles. Each document ID (`employeeId`) directly corresponds to the Firebase Authentication UID of the employee. This provides the root for path-based authorization for all employee-specific production data."
+        }
+      },
+      {
+        "path": "/employees/{employeeId}/productionDays/{productionDayId}",
+        "definition": {
+          "entityName": "ProductionDay",
+          "schema": {
+            "$ref": "#/backend/entities/ProductionDay"
+          },
+          "description": "Subcollection storing aggregated daily production data for a specific employee. The `employeeId` is derived from the parent path, ensuring robust ownership rules. This collection includes the `isSubmitted` field, which acts as an explicit state for the daily report. Includes explicit `employeeId` field for efficient collectionGroup queries. No additional denormalization for authorization is required in this document, as `employeeId` is in the path.",
+          "params": [
+            {
+              "name": "employeeId",
+              "description": "The unique identifier of the employee, matching their Firebase Authentication UID."
+            },
+            {
+              "name": "productionDayId",
+              "description": "The unique identifier for a specific day's production report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/employees/{employeeId}/productionDays/{productionDayId}/discharges/{dischargeId}",
+        "definition": {
+          "entityName": "Discharge",
+          "schema": {
+            "$ref": "#/backend/entities/Discharge"
+          },
+          "description": "Subcollection storing individual material discharge records for a specific production day. The `employeeId` and `productionDayId` are implicitly available from the parent path for authorization. For full Authorization Independence and to allow write restrictions (e.g., preventing writes if the parent `ProductionDay` is submitted) without requiring `get()` calls in rules, the `employeeId` (from root owner) and the `isSubmitted` status (e.g., as `productionDayIsSubmitted`) of the parent `ProductionDay` *should be denormalized into each Discharge document*. This allows security rules to evaluate authorization solely based on `request.auth.uid` and `resource.data` fields.",
+          "params": [
+            {
+              "name": "employeeId",
+              "description": "The unique identifier of the employee, inherited from the grandparent path."
+            },
+            {
+              "name": "productionDayId",
+              "description": "The unique identifier for the parent production day, inherited from the parent path."
+            },
+            {
+              "name": "dischargeId",
+              "description": "The unique identifier for an individual material discharge record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be highly secure, scalable, and debuggable, adhering to all core design principles and mandates. The core strategy revolves around path-based ownership, structural segregation, and denormalization for authorization independence.\n\n**Authorization Independence (CRITICAL):**\n1.  **Employee Ownership:** All production data for a specific employee (`ProductionDay` and `Discharge`) is nested directly under `/employees/{employeeId}/`. This makes the `employeeId` readily available as a path segment in security rules (`employeeId == request.auth.uid`), eliminating the need for `get()` calls to a parent `User` or `Employee` document to determine ownership.\n2.  **Nested Data Ownership:** `Discharge` documents are nested under `ProductionDay`. Their ownership (both `employeeId` and `productionDayId`) is inherently clear from their hierarchical path. To prevent write operations on `Discharge` documents once their parent `ProductionDay` has been submitted, the `isSubmitted` status of the `ProductionDay` *must be denormalized* into each `Discharge` document (e.g., `discharge.productionDayIsSubmitted: boolean`). Similarly, for complete query flexibility and strict authorization independence for `Discharge` documents, the `employeeId` from the root owner *should also be denormalized* into each `Discharge` document. This allows security rules for `Discharge` documents to operate purely on `request.auth.uid` and `resource.data` fields, without requiring a `get()` call to the parent `ProductionDay` document to check its `isSubmitted` status. This explicit denormalization is crucial for maintaining atomic operations and simplifying rules.\n3.  **Role-Based Access Control (DBAC):** Supervisor roles are managed via a dedicated, flat collection (`/roles_supervisors/{supervisorUid}`). Authorization checks for supervisors will use the `exists()` function on this collection (e.g., `exists(/databases/$(database)/documents/roles_supervisors/$(request.auth.uid))`). This is an independent check that doesn't affect atomicity of data operations within the employee production data, fulfilling the Authorization Independence mandate for role checks.\n\n**Querying Authorized Paths (QAPs):**\n1.  **For Employees:** Employees can securely `list` their own `ProductionDay` and `Discharge` records. Queries like `db.collection('employees').doc(request.auth.uid).collection('productionDays').get()` or `db.collection('employees').doc(request.auth.uid).collection('productionDays').doc(productionDayId).collection('discharges').get()` are inherently secure. The security rules will enforce that `{employeeId}` in the path matches `request.auth.uid`, ensuring that only data owned by the requesting user is returned. This adheres to QAPs because the client-side query path provides the necessary authorization context, and rules don't need to filter results.\n2.  **For Supervisors:** Supervisors, identified by their presence in the `/roles_supervisors` collection, require broader read access. They can view all `ProductionDay` and `Discharge` data. To specifically view *submitted* data across all employees (as requested: \"que son supérieur puisse voir cela\"), supervisors can utilize `collectionGroup` queries combined with explicit `where` clauses (e.g., `db.collectionGroup('productionDays').where('isSubmitted', '==', true).get()`). Security rules can then permit `list` operations on these `collectionGroup` queries only if the user is a supervisor AND the query's `resource.data.isSubmitted` property is `true`. This allows supervisors to receive a pre-filtered, authorized list of submitted records without requiring client-side filtering, fully satisfying the QAPs mandate.\n\n**Structural Segregation:**\n*   Employee profiles (`/employees`) are separate from their production data. Production data (`/productionDays`, `/discharges`) is segregated by employee ID.\n*   Role data (`/roles_supervisors`) is segregated from operational data, ensuring homogeneous security postures within each collection.\n\n**Access Modeling:**\n*   **Private Data & Hierarchical Ownership:** All employee-specific data (`ProductionDay`, `Discharge`) follows the `/employees/{employeeId}/productionDays/{productionDayId}/discharges/{dischargeId}` pattern, ensuring clear ownership and simple path-based security rules.\n*   **Global Roles (DBAC):** The `/roles_supervisors/{supervisorUid}` collection provides a simple existence check for supervisor privileges.\n\nThis structure prioritizes security and maintainability, making the authorization logic explicit and efficient in Firestore security rules, and directly supports the requirement for supervisors to view employee submissions securely."
+  }
+}
