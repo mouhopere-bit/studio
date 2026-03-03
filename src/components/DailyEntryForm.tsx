@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -129,7 +128,9 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-bold uppercase text-[10px]">Qté (Tonnes)</FormLabel>
+                <FormLabel className="font-bold uppercase text-[10px]">
+                  {watchType === 'Adjuvant' ? 'Qté (Litres)' : 'Qté (Tonnes)'}
+                </FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" className="font-bold" {...field} />
                 </FormControl>

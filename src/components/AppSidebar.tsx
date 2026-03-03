@@ -29,16 +29,22 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
 
   const totals = React.useMemo(() => {
     return entries.reduce((acc, curr) => {
-      if (curr.type === 'Ciment') acc.ciment += curr.quantity;
-      if (curr.type === 'Adjuvant') acc.adjuvant += curr.quantity;
+      if (curr.type === 'Ciment') {
+        acc.ciment += curr.quantity;
+        acc.totalPoids += curr.quantity;
+      }
+      if (curr.type === 'Adjuvant') {
+        acc.adjuvant += curr.quantity;
+        acc.totalAdjuvant += curr.quantity;
+      }
       if (curr.type === 'Gravier') {
         if (curr.gravelSize === '3/8') acc.g38 += curr.quantity;
         if (curr.gravelSize === '8/16') acc.g816 += curr.quantity;
         if (curr.gravelSize === '0/3') acc.g03 += curr.quantity;
+        acc.totalPoids += curr.quantity;
       }
-      acc.grandTotal += curr.quantity;
       return acc;
-    }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
+    }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, totalPoids: 0, totalAdjuvant: 0 });
   }, [entries]);
 
   const handleLogout = () => {
@@ -89,17 +95,17 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
                 <div className="flex flex-col">
                   <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Poids Total</span>
                   <span className="text-2xl font-black text-primary">
-                    {totals.grandTotal.toFixed(1)} <span className="text-[10px] font-medium text-slate-400 italic">Tonnes</span>
+                    {totals.totalPoids.toFixed(1)} <span className="text-[10px] font-medium text-slate-400 italic">Tonnes</span>
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
                     <p className="text-[9px] text-slate-500 font-bold uppercase">Ciment</p>
                     <p className="text-sm font-bold text-slate-800">{totals.ciment.toFixed(1)} T</p>
                   </div>
-                  <div className="space-y-1">
+                  <div className="flex justify-between items-center border-t pt-2">
                     <p className="text-[9px] text-slate-500 font-bold uppercase">Adjuvant</p>
-                    <p className="text-sm font-bold text-slate-800">{totals.adjuvant.toFixed(1)} T</p>
+                    <p className="text-sm font-bold text-slate-800">{totals.adjuvant.toFixed(1)} L</p>
                   </div>
                 </div>
               </CardContent>

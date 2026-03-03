@@ -1,11 +1,9 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ProductionEntry } from './db';
 
-export const generateDailyReport = (date: string, entries: ProductionEntry[]) => {
+export const generateDailyReport = (date: string, entries: any[]) => {
   const doc = jsPDF();
   const formattedDate = format(new Date(date), 'dd MMMM yyyy', { locale: fr });
 
@@ -25,7 +23,7 @@ export const generateDailyReport = (date: string, entries: ProductionEntry[]) =>
   const tableData = entries.map(entry => [
     entry.time,
     entry.type === 'Gravier' ? `Gravier ${entry.gravelSize}` : entry.type,
-    entry.quantity.toFixed(2),
+    `${entry.quantity.toFixed(2)} ${entry.type === 'Adjuvant' ? 'L' : 'T'}`,
     entry.observations || '-'
   ]);
 
@@ -47,12 +45,13 @@ export const generateDailyReport = (date: string, entries: ProductionEntry[]) =>
   doc.text('Récapitulatif des Totaux', 20, finalY);
 
   const summaryData = [
-    ['Ciment Total', `${totals.ciment.toFixed(2)}`],
-    ['Adjuvant Total', `${totals.adjuvant.toFixed(2)}`],
-    ['Gravier 3/8 Total', `${totals.g38.toFixed(2)}`],
-    ['Gravier 8/16 Total', `${totals.g816.toFixed(2)}`],
-    ['Gravier 0/3 Total', `${totals.g03.toFixed(2)}`],
-    ['TOTAL GÉNÉRAL', `${totals.grandTotal.toFixed(2)}`],
+    ['Ciment Total', `${totals.ciment.toFixed(2)} T`],
+    ['Gravier 3/8 Total', `${totals.g38.toFixed(2)} T`],
+    ['Gravier 8/16 Total', `${totals.g816.toFixed(2)} T`],
+    ['Gravier 0/3 Total', `${totals.g03.toFixed(2)} T`],
+    ['POIDS TOTAL (Granulats + Ciment)', `${totals.totalPoids.toFixed(2)} T`],
+    ['', ''],
+    ['ADJUVANT TOTAL', `${totals.adjuvant.toFixed(2)} L`],
   ];
 
   autoTable(doc, {
@@ -73,16 +72,21 @@ export const generateDailyReport = (date: string, entries: ProductionEntry[]) =>
   doc.save(`Rapport_Axiome_${date}.pdf`);
 };
 
-const calculateTotals = (entries: ProductionEntry[]) => {
+const calculateTotals = (entries: any[]) => {
   return entries.reduce((acc, curr) => {
-    if (curr.type === 'Ciment') acc.ciment += curr.quantity;
-    if (curr.type === 'Adjuvant') acc.adjuvant += curr.quantity;
+    if (curr.type === 'Ciment') {
+      acc.ciment += curr.quantity;
+      acc.totalPoids += curr.quantity;
+    }
+    if (curr.type === 'Adjuvant') {
+      acc.adjuvant += curr.quantity;
+    }
     if (curr.type === 'Gravier') {
       if (curr.gravelSize === '3/8') acc.g38 += curr.quantity;
       if (curr.gravelSize === '8/16') acc.g816 += curr.quantity;
       if (curr.gravelSize === '0/3') acc.g03 += curr.quantity;
+      acc.totalPoids += curr.quantity;
     }
-    acc.grandTotal += curr.quantity;
     return acc;
-  }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
+  }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, totalPoids: 0 });
 };

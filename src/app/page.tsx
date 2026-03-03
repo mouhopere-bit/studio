@@ -131,18 +131,24 @@ export default function Home() {
   };
 
   const totals = React.useMemo(() => {
-    if (!entries) return { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 };
+    if (!entries) return { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, totalPoids: 0, totalAdjuvant: 0 };
     return entries.reduce((acc, curr) => {
-      if (curr.type === 'Ciment') acc.ciment += curr.quantity;
-      if (curr.type === 'Adjuvant') acc.adjuvant += curr.quantity;
+      if (curr.type === 'Ciment') {
+        acc.ciment += curr.quantity;
+        acc.totalPoids += curr.quantity;
+      }
+      if (curr.type === 'Adjuvant') {
+        acc.adjuvant += curr.quantity;
+        acc.totalAdjuvant += curr.quantity;
+      }
       if (curr.type === 'Gravier') {
         if (curr.gravelSize === '3/8') acc.g38 += curr.quantity;
         if (curr.gravelSize === '8/16') acc.g816 += curr.quantity;
         if (curr.gravelSize === '0/3') acc.g03 += curr.quantity;
+        acc.totalPoids += curr.quantity;
       }
-      acc.grandTotal += curr.quantity;
       return acc;
-    }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
+    }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, totalPoids: 0, totalAdjuvant: 0 });
   }, [entries]);
 
   if (!isMounted || isUserLoading) {
@@ -249,7 +255,7 @@ export default function Home() {
                   <TableRow>
                     <TableHead className="font-bold">Heure</TableHead>
                     <TableHead className="font-bold">Désignation</TableHead>
-                    <TableHead className="font-bold">Poids (T)</TableHead>
+                    <TableHead className="font-bold">Quantité</TableHead>
                     <TableHead className="hidden md:table-cell font-bold">Notes</TableHead>
                     {!dayInfo?.isSubmitted && !isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                   </TableRow>
@@ -271,7 +277,9 @@ export default function Home() {
                           <span className="font-bold text-slate-900">{entry.type}</span>
                           {entry.type === 'Gravier' && <Badge variant="outline" className="ml-2 font-bold">{entry.gravelSize}</Badge>}
                         </TableCell>
-                        <TableCell className="font-bold text-primary">{entry.quantity.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold text-primary">
+                          {entry.quantity.toFixed(2)} {entry.type === 'Adjuvant' ? 'L' : 'T'}
+                        </TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{entry.observations || '-'}</TableCell>
                         {!dayInfo?.isSubmitted && !isReadOnly && (
                           <TableCell>
@@ -291,38 +299,38 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card className="bg-slate-900 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Général</p>
-                <p className="text-2xl font-black">{totals.grandTotal.toFixed(1)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Poids Total</p>
+                <p className="text-2xl font-black">{totals.totalPoids.toFixed(1)} <span className="text-xs">T</span></p>
               </CardContent>
             </Card>
             <Card className="bg-blue-600 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mb-1">Ciment</p>
-                <p className="text-2xl font-black">{totals.ciment.toFixed(1)}</p>
+                <p className="text-2xl font-black">{totals.ciment.toFixed(1)} <span className="text-xs">T</span></p>
               </CardContent>
             </Card>
             <Card className="bg-amber-600 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 3/8</p>
-                <p className="text-2xl font-black">{totals.g38.toFixed(1)}</p>
+                <p className="text-2xl font-black">{totals.g38.toFixed(1)} <span className="text-xs">T</span></p>
               </CardContent>
             </Card>
             <Card className="bg-amber-600 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 8/16</p>
-                <p className="text-2xl font-black">{totals.g816.toFixed(1)}</p>
+                <p className="text-2xl font-black">{totals.g816.toFixed(1)} <span className="text-xs">T</span></p>
               </CardContent>
             </Card>
             <Card className="bg-amber-600 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 0/3</p>
-                <p className="text-2xl font-black">{totals.g03.toFixed(1)}</p>
+                <p className="text-2xl font-black">{totals.g03.toFixed(1)} <span className="text-xs">T</span></p>
               </CardContent>
             </Card>
             <Card className="bg-indigo-600 text-white border-none">
               <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200 mb-1">Adjuvant</p>
-                <p className="text-2xl font-black">{totals.adjuvant.toFixed(1)}</p>
+                <p className="text-2xl font-black">{totals.adjuvant.toFixed(1)} <span className="text-xs">L</span></p>
               </CardContent>
             </Card>
           </div>
