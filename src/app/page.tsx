@@ -3,12 +3,13 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useSearchParams } from 'next/navigation';
 import { DailyEntryForm } from '@/components/DailyEntryForm';
 import { generateDailyReport } from '@/lib/pdf-gen';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu, Send, CheckCircle2, Lock } from 'lucide-react';
+import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu, Send, CheckCircle2, Lock, Share2, UserCheck } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
@@ -22,8 +23,14 @@ export default function Home() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isMounted, setIsMounted] = React.useState(false);
+
+  // Determine the target employee ID from URL or current user
+  const empIdParam = searchParams.get('empId');
+  const targetUid = empIdParam || user?.uid;
+  const isReadOnly = user?.uid !== targetUid;
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -31,7 +38,7 @@ export default function Home() {
 
   const dateStr = isMounted ? format(selectedDate, 'yyyy-MM-dd') : '';
 
-  // Auto-login anonymously if not logged in for this MVP
+  // Auto-login anonymously if not logged in
   React.useEffect(() => {
     if (isMounted && !isUserLoading && !user && db) {
       import('firebase/auth').then(({ getAuth, signInAnonymously }) => {
@@ -40,29 +47,28 @@ export default function Home() {
     }
   }, [user, isUserLoading, db, isMounted]);
 
-  // Firestore References
+  // Firestore References using targetUid
   const productionDayRef = useMemoFirebase(() => {
-    if (!db || !user || !dateStr) return null;
-    return doc(db, 'employees', user.uid, 'productionDays', dateStr);
-  }, [db, user, dateStr]);
+    if (!db || !targetUid || !dateStr) return null;
+    return doc(db, 'employees', targetUid, 'productionDays', dateStr);
+  }, [db, targetUid, dateStr]);
 
   const dischargesQuery = useMemoFirebase(() => {
-    if (!db || !user || !dateStr) return null;
-    return collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
-  }, [db, user, dateStr]);
+    if (!db || !targetUid || !dateStr) return null;
+    return collection(db, 'employees', targetUid, 'productionDays', dateStr, 'discharges');
+  }, [db, targetUid, dateStr]);
 
   const { data: dayInfo, isLoading: isDayLoading } = useDoc(productionDayRef);
   const { data: entries, isLoading: isEntriesLoading } = useCollection(dischargesQuery);
 
   const handleAddEntry = (data: any) => {
-    if (!db || !user || !dischargesQuery || !productionDayRef || !dateStr) return;
+    if (!db || !user || !dischargesQuery || !productionDayRef || !dateStr || isReadOnly) return;
 
     if (dayInfo?.isSubmitted) {
       toast({ variant: 'destructive', title: "Action impossible", description: "Ce rapport a déjà été soumis." });
       return;
     }
 
-    // Ensure production day exists or update lastUpdated using set with merge
     setDocumentNonBlocking(productionDayRef, {
       id: dateStr,
       employeeId: user.uid,
@@ -73,7 +79,6 @@ export default function Home() {
 
     const colRef = collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
     
-    // Sanitize payload to remove undefined values which Firestore doesn't support
     const payload = {
       ...data,
       productionDayId: dateStr,
@@ -90,19 +95,18 @@ export default function Home() {
     });
 
     addDocumentNonBlocking(colRef, payload);
-
-    toast({ title: "Décharge ajoutée", description: "Enregistré sur le cloud" });
+    toast({ title: "Décharge ajoutée" });
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    if (!db || !user || !dateStr || dayInfo?.isSubmitted) return;
+    if (!db || !user || !dateStr || dayInfo?.isSubmitted || isReadOnly) return;
     const entryRef = doc(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges', entryId);
     deleteDocumentNonBlocking(entryRef);
     toast({ title: "Décharge supprimée" });
   };
 
   const handleToggleSubmit = () => {
-    if (!productionDayRef || !user || !dateStr) return;
+    if (!productionDayRef || !user || !dateStr || isReadOnly) return;
     const newStatus = !dayInfo?.isSubmitted;
     
     setDocumentNonBlocking(productionDayRef, {
@@ -116,6 +120,14 @@ export default function Home() {
       title: newStatus ? "Rapport soumis !" : "Rapport réouvert", 
       description: newStatus ? "Votre supérieur peut maintenant le consulter." : "Vous pouvez à nouveau modifier les données."
     });
+  };
+
+  const handleShareLink = () => {
+    if (!user) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('empId', user.uid);
+    navigator.clipboard.writeText(url.toString());
+    toast({ title: "Lien copié !", description: "Partagez ce lien avec votre supérieur." });
   };
 
   const totals = React.useMemo(() => {
@@ -149,7 +161,8 @@ export default function Home() {
       <AppSidebar 
         entries={entries || []} 
         selectedDate={selectedDate} 
-        onSelectDate={setSelectedDate} 
+        onSelectDate={setSelectedDate}
+        targetUid={targetUid || ''}
       />
       <SidebarInset>
         <header className="sticky top-0 z-30 bg-primary/95 backdrop-blur-sm text-primary-foreground shadow-lg border-b border-primary/20">
@@ -164,6 +177,11 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isReadOnly && (
+                <Badge className="bg-amber-500 text-white gap-1 px-3 py-1">
+                  <UserCheck className="w-3 h-3" /> Vue Supérieur
+                </Badge>
+              )}
               {dayInfo?.isSubmitted ? (
                 <Badge className="bg-green-500 text-white gap-1 px-3 py-1">
                   <CheckCircle2 className="w-3 h-3" /> Soumis
@@ -189,14 +207,21 @@ export default function Home() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button 
-                onClick={handleToggleSubmit}
-                variant={dayInfo?.isSubmitted ? "outline" : "default"}
-                className={!dayInfo?.isSubmitted ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-              >
-                {dayInfo?.isSubmitted ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                {dayInfo?.isSubmitted ? "Réouvrir" : "Soumettre au supérieur"}
-              </Button>
+              {!isReadOnly && (
+                <>
+                  <Button 
+                    onClick={handleToggleSubmit}
+                    variant={dayInfo?.isSubmitted ? "outline" : "default"}
+                    className={!dayInfo?.isSubmitted ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                  >
+                    {dayInfo?.isSubmitted ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                    {dayInfo?.isSubmitted ? "Réouvrir" : "Soumettre au supérieur"}
+                  </Button>
+                  <Button onClick={handleShareLink} variant="outline" size="icon" title="Partager le lien">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
               <Button 
                 onClick={() => generateDailyReport(dateStr, entries || [])}
                 disabled={!entries || entries.length === 0}
@@ -209,15 +234,19 @@ export default function Home() {
             </div>
           </div>
 
-          {!dayInfo?.isSubmitted ? (
+          {!isReadOnly && !dayInfo?.isSubmitted ? (
             <DailyEntryForm onAdd={handleAddEntry} />
           ) : (
             <Card className="bg-slate-50 border-dashed border-2 border-slate-200">
               <CardContent className="flex items-center justify-center p-8 gap-4 text-slate-500">
                 <Lock className="w-8 h-8 opacity-50" />
                 <div className="text-center md:text-left">
-                  <p className="font-bold">Rapport Verrouillé</p>
-                  <p className="text-sm">Ce rapport a été soumis. Réouvrez-le pour ajouter de nouvelles décharges.</p>
+                  <p className="font-bold">{isReadOnly ? "Lecture Seule" : "Rapport Verrouillé"}</p>
+                  <p className="text-sm">
+                    {isReadOnly 
+                      ? "Vous consultez le rapport d'un autre utilisateur." 
+                      : "Ce rapport a été soumis. Réouvrez-le pour ajouter de nouvelles décharges."}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -236,7 +265,7 @@ export default function Home() {
                       <TableHead className="font-black uppercase text-[10px] tracking-widest">Matière</TableHead>
                       <TableHead className="font-black uppercase text-[10px] tracking-widest">Quantité</TableHead>
                       <TableHead className="hidden md:table-cell font-black uppercase text-[10px] tracking-widest">Observations</TableHead>
-                      {!dayInfo?.isSubmitted && <TableHead className="w-[50px]"></TableHead>}
+                      {!dayInfo?.isSubmitted && !isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -264,7 +293,7 @@ export default function Home() {
                           <TableCell className="hidden md:table-cell text-muted-foreground truncate max-w-[200px]">
                             {entry.observations || '-'}
                           </TableCell>
-                          {!dayInfo?.isSubmitted && (
+                          {!dayInfo?.isSubmitted && !isReadOnly && (
                             <TableCell>
                               <Button 
                                 variant="ghost" 

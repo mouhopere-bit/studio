@@ -2,132 +2,67 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * CORE PHILOSOPHY
-     * This ruleset implements a strict path-based ownership model complemented by a role-based 
-     * access control system for supervisors. It is designed for a multi-tenant environment 
-     * where employees manage their own production data, while supervisors maintain global 
-     * visibility over all submitted entries.
-     *
-     * DATA STRUCTURE
-     * 1. /employees/{employeeId}: Root user profiles where {employeeId} matches the Firebase Auth UID.
-     * 2. /employees/{employeeId}/productionDays/{dayId}: Daily production aggregates.
-     * 3. /employees/{employeeId}/productionDays/{dayId}/discharges/{dischargeId}: Individual material entries.
-     * 4. /roles_supervisors/{uid}: A flat collection identifying users with supervisor privileges.
-     *
-     * KEY SECURITY DECISIONS
-     * - Path-Based Authorization: All operational data is nested under the employee's UID, 
-     *   allowing for O(1) ownership checks without database lookups.
-     * - Supervisor Override: Users present in the 'roles_supervisors' collection are granted 
-     *   read-access across the entire tree to support oversight requirements.
-     * - Submission Locking: Discharge records are protected from modification once the 
-     *   parent ProductionDay is marked as submitted, enforced via denormalized status flags.
-     * - Relational Integrity: On creation, documents must include field data (like employeeId) 
-     *    matching their URL path to ensure query consistency.
-     *
-     * DENORMALIZATION FOR AUTHORIZATION
-     * - The 'productionDayIsSubmitted' flag is denormalized from the ProductionDay document into 
-     *   every child 'Discharge' document. This allows the rules to block edits on 'Discharge' 
-     *   records after submission without performing a slow and expensive 'get()' on the parent.
-     */
-
     // --- Global Helper Functions ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the authenticated user is registered as a supervisor. */
     function isSupervisor() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_supervisors/$(request.auth.uid));
     }
 
-    /** @description Combines ownership and existence checks for updates and deletes. */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /** @description Helper to check if a document is already submitted (preventing further edits). */
     function isNotSubmitted() {
       return resource.data.isSubmitted == false || resource.data.productionDayIsSubmitted == false;
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for the top-level roles collection. Used for DBAC (Database-wide Access Control).
-     * @path /roles_supervisors/{uid}
-     * @allow (get) Any signed-in user can check if they (or others) are supervisors.
-     * @deny (write) No client-side modification; roles should be managed by Admin SDK/Console.
-     * @principle Role-Based Access Control (DBAC).
-     */
     match /roles_supervisors/{uid} {
       allow get: if isSignedIn();
       allow list, create, update, delete: if false;
     }
 
-    /**
-     * @description Rules for employee profile documents.
-     * @path /employees/{employeeId}
-     * @allow (create) An authenticated user creating their own profile.
-     * @deny (update) Changing the document ID (uid) after creation.
-     * @principle Self-Creation and Path-Based Ownership.
-     */
     match /employees/{employeeId} {
-      allow get, list: if isOwner(employeeId) || isSupervisor();
+      // Autorise la lecture si c'est le propriétaire, un superviseur, ou si on a le lien (isSignedIn car auto-anonyme)
+      allow get: if isSignedIn();
+      allow list: if isOwner(employeeId) || isSupervisor();
       allow create: if isOwner(employeeId) && request.resource.data.id == employeeId;
       allow update: if isExistingOwner(employeeId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(employeeId);
     }
 
-    /**
-     * @description Rules for daily production summary containers.
-     * @path /employees/{employeeId}/productionDays/{productionDayId}
-     * @allow (list) Employees listing their own days or supervisors viewing all days.
-     * @deny (create) Creating a record where the internal 'employeeId' doesn't match the path.
-     * @principle Relational Integrity and Hierarchical Ownership.
-     */
     match /employees/{employeeId}/productionDays/{productionDayId} {
-      allow get, list: if isOwner(employeeId) || isSupervisor();
+      // Autorise la lecture individuelle à toute personne ayant le lien
+      allow get: if isSignedIn();
+      allow list: if isOwner(employeeId) || isSupervisor();
       allow create: if isOwner(employeeId) && request.resource.data.employeeId == employeeId;
       allow update: if isExistingOwner(employeeId) && request.resource.data.employeeId == resource.data.employeeId;
       allow delete: if isExistingOwner(employeeId);
     }
 
-    /**
-     * @description Rules for individual material discharge records.
-     * @path /employees/{employeeId}/productionDays/{productionDayId}/discharges/{dischargeId}
-     * @allow (update) Owner modifying a record only if the day is not yet submitted.
-     * @deny (delete) Deleting a record that has already been submitted for supervisor review.
-     * @principle Authorization Independence (using denormalized 'productionDayIsSubmitted' field).
-     */
     match /employees/{employeeId}/productionDays/{productionDayId}/discharges/{dischargeId} {
-      allow get, list: if isOwner(employeeId) || isSupervisor();
+      // Autorise la lecture de la liste à toute personne ayant le lien
+      allow get, list: if isSignedIn();
       allow create: if isOwner(employeeId);
       allow update: if isExistingOwner(employeeId) && isNotSubmitted();
       allow delete: if isExistingOwner(employeeId) && isNotSubmitted();
     }
 
-    // --- Collection Group Rules (Support for Supervisor queries) ---
+    // --- Collection Group Rules ---
 
-    /**
-     * @description Allows supervisors to query across all employee production data.
-     * @path /{path=**}/productionDays/{dayId}
-     */
     match /{path=**}/productionDays/{dayId} {
       allow list: if isSupervisor();
     }
 
-    /**
-     * @description Allows supervisors to query across all discharge records.
-     * @path /{path=**}/discharges/{dischargeId}
-     */
     match /{path=**}/discharges/{dischargeId} {
       allow list: if isSupervisor();
     }

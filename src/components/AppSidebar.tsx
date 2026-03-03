@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -14,15 +13,15 @@ import { CalendarView } from '@/components/CalendarView';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LayoutDashboard, Database, User as UserIcon } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { Badge } from '@/components/ui/badge';
 
 interface AppSidebarProps {
   entries: any[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
+  targetUid: string;
 }
 
-export function AppSidebar({ entries, selectedDate, onSelectDate }: AppSidebarProps) {
+export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: AppSidebarProps) {
   const { user } = useUser();
 
   const totals = React.useMemo(() => {
@@ -51,12 +50,12 @@ export function AppSidebar({ entries, selectedDate, onSelectDate }: AppSidebarPr
             <p className="text-xs opacity-80">Rapports Journaliers</p>
           </div>
         </div>
-        {user && (
+        {targetUid && (
           <div className="mt-4 p-2 bg-white/10 rounded-lg flex items-center gap-2">
             <UserIcon className="w-4 h-4" />
             <div className="text-[10px] truncate max-w-[150px]">
-              <p className="font-bold uppercase tracking-widest opacity-60">Session active</p>
-              <p className="font-mono">{user.uid.substring(0, 8)}...</p>
+              <p className="font-bold uppercase tracking-widest opacity-60">Consultation ID</p>
+              <p className="font-mono">{targetUid.substring(0, 12)}...</p>
             </div>
           </div>
         )}
@@ -68,7 +67,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate }: AppSidebarPr
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <CalendarView 
-              entries={[]} // Data with dots can be added here later if needed
+              entries={[]} 
               selectedDate={selectedDate} 
               onSelectDate={onSelectDate} 
             />
