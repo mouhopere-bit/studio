@@ -15,16 +15,20 @@ export function CalendarView({ entries, onSelectDate, selectedDate }: CalendarVi
   // Extraire les dates uniques des entrées (format YYYY-MM-DD)
   const datesWithData = React.useMemo(() => {
     if (!entries) return [];
-    // Dans Firestore, les dates sont souvent stockées en string ISO ou date simple
+    // Utiliser Set pour l'unicité des dates
     const dates = new Set(entries.map(e => e.productionDayId || e.date));
     return Array.from(dates)
       .filter(d => !!d)
-      .map(d => new Date(d as string));
+      .map(d => {
+        // Créer une date locale sans décalage horaire
+        const [year, month, day] = (d as string).split('-').map(Number);
+        return new Date(year, month - 1, day);
+      });
   }, [entries]);
 
   return (
     <Card className="shadow-none border-none bg-white rounded-2xl overflow-hidden ring-1 ring-slate-200">
-      <CardContent className="p-1 flex justify-center">
+      <CardContent className="p-0 flex justify-center">
         <Calendar
           mode="single"
           selected={selectedDate}
@@ -38,9 +42,9 @@ export function CalendarView({ entries, onSelectDate, selectedDate }: CalendarVi
             hasData: {
               fontWeight: 'bold',
               color: 'hsl(var(--primary))',
-              backgroundColor: 'hsl(var(--primary) / 0.08)',
-              borderRadius: '9999px',
-              border: '1px solid hsl(var(--primary) / 0.1)'
+              textDecoration: 'underline',
+              textDecorationColor: 'hsl(var(--primary) / 0.5)',
+              textUnderlineOffset: '4px'
             }
           }}
         />
