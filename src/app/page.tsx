@@ -4,17 +4,18 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarView } from '@/components/CalendarView';
 import { DailyEntryForm } from '@/components/DailyEntryForm';
 import { StorageService, ProductionEntry } from '@/lib/db';
 import { generateDailyReport } from '@/lib/pdf-gen';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, Trash2, LayoutDashboard, Calendar as CalendarIcon, Database } from 'lucide-react';
+import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { BackupManager } from '@/components/BackupManager';
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
 
 export default function Home() {
   const [mounted, setMounted] = React.useState(false);
@@ -72,166 +73,156 @@ export default function Home() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Database className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <h1 className="text-xl font-semibold">Chargement du système...</h1>
+          <h1 className="text-xl font-semibold italic text-slate-500">Chargement Axiome...</h1>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      <header className="bg-primary text-primary-foreground shadow-md mb-8">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 p-2 rounded-lg">
-              <Database className="w-8 h-8" />
+    <>
+      <AppSidebar 
+        entries={entries} 
+        allEntries={allEntries} 
+        selectedDate={selectedDate} 
+        onSelectDate={setSelectedDate} 
+      />
+      <SidebarInset>
+        <header className="sticky top-0 z-30 bg-primary/95 backdrop-blur-sm text-primary-foreground shadow-lg border-b border-primary/20">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="bg-white/10 hover:bg-white/20 transition-colors p-2 rounded-md">
+                <Menu className="w-5 h-5" />
+              </SidebarTrigger>
+              <div className="flex flex-col">
+                <h1 className="text-lg font-headline font-black tracking-tight leading-none">Axiome Production</h1>
+                <p className="text-[10px] opacity-80 uppercase tracking-widest font-bold">Système Central à Béton</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-headline font-bold tracking-tight">Axiome Central à Béton</h1>
-              <p className="text-sm opacity-80">Gestion de la Production Journalière</p>
+            <div className="hidden sm:block">
+              <BackupManager onDataChange={loadData} />
             </div>
           </div>
-          <BackupManager onDataChange={loadData} />
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column - Calendar & Tools */}
-        <div className="lg:col-span-4 space-y-6">
-          <CalendarView 
-            entries={allEntries} 
-            selectedDate={selectedDate} 
-            onSelectDate={setSelectedDate} 
-          />
-          
-          <Card className="border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50 border-b">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <LayoutDashboard className="w-5 h-5 text-primary" />
-                Résumé du Jour
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">Total Général</span>
-                <span className="text-3xl font-bold text-primary">{totals.grandTotal.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">Tonnes</span></span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-xs text-blue-700 font-bold uppercase">Ciment</p>
-                  <p className="text-xl font-bold">{totals.ciment.toFixed(2)}</p>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <p className="text-xs text-purple-700 font-bold uppercase">Adjuvant</p>
-                  <p className="text-xl font-bold">{totals.adjuvant.toFixed(2)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <main className="max-w-7xl mx-auto px-4 py-6 md:py-8 space-y-6 md:space-y-8">
+          {/* Header Mobile Actions */}
+          <div className="flex flex-col gap-4 sm:hidden">
+            <div className="p-3 bg-white rounded-lg shadow-sm border border-slate-200">
+              <BackupManager onDataChange={loadData} />
+            </div>
+          </div>
 
-        {/* Right Column - Entry & List */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold">{format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-md border border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <CalendarIcon className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
+                  {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
+                </h2>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">État actuel</p>
+              </div>
             </div>
             <Button 
               onClick={() => generateDailyReport(format(selectedDate, 'yyyy-MM-dd'), entries)}
               disabled={entries.length === 0}
-              className="bg-accent hover:bg-accent/90"
+              size="lg"
+              className="w-full md:w-auto bg-accent hover:bg-accent/90 shadow-lg text-white font-bold"
             >
-              <FileDown className="mr-2 h-4 w-4" />
-              Exporter PDF
+              <FileDown className="mr-2 h-5 w-5" />
+              Générer Rapport PDF
             </Button>
           </div>
 
           <DailyEntryForm onAdd={handleAddEntry} />
 
-          <Card className="border-none shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50 border-b">
-              <CardTitle className="text-lg">Liste des décharges</CardTitle>
+          <Card className="border-none shadow-xl overflow-hidden bg-white rounded-2xl">
+            <CardHeader className="bg-slate-50 border-b p-4 md:p-6">
+              <CardTitle className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-700">Liste des décharges</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Heure</TableHead>
-                    <TableHead>Matière</TableHead>
-                    <TableHead>Quantité</TableHead>
-                    <TableHead className="hidden md:table-cell">Observations</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entries.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        Aucune décharge enregistrée pour ce jour.
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/50">
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Heure</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Matière</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Quantité</TableHead>
+                      <TableHead className="hidden md:table-cell font-black uppercase text-[10px] tracking-widest">Observations</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ) : (
-                    entries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium">{entry.time}</TableCell>
-                        <TableCell>
-                          <span className="font-semibold">{entry.type}</span>
-                          {entry.type === 'Gravier' && <span className="text-xs ml-1 px-1.5 py-0.5 bg-slate-100 rounded">{entry.gravelSize}</span>}
-                        </TableCell>
-                        <TableCell>{entry.quantity.toFixed(2)} T</TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground truncate max-w-[200px]">
-                          {entry.observations || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteEntry(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {entries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
+                          Aucune décharge enregistrée pour ce jour.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      entries.map((entry) => (
+                        <TableRow key={entry.id} className="hover:bg-slate-50/80 transition-colors">
+                          <TableCell className="font-bold text-slate-900">{entry.time}</TableCell>
+                          <TableCell>
+                            <span className="font-black text-slate-700 uppercase tracking-tight">{entry.type}</span>
+                            {entry.type === 'Gravier' && <span className="text-[10px] ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded font-black">{entry.gravelSize}</span>}
+                          </TableCell>
+                          <TableCell className="font-black text-primary">{entry.quantity.toFixed(2)} T</TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground truncate max-w-[200px]">
+                            {entry.observations || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteEntry(entry.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Detailed Totals for the bottom */}
-          <Card className="border-none shadow-sm bg-slate-100">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-bold mb-4 uppercase text-slate-600 tracking-tight">Détail des Totaux du Jour</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div className="bg-white p-4 rounded shadow-sm border-l-4 border-blue-600">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Ciment</p>
-                  <p className="text-2xl font-bold">{totals.ciment.toFixed(2)}</p>
+          {/* Detailed Totals at bottom */}
+          <Card className="border-none shadow-lg bg-slate-900 text-white rounded-2xl overflow-hidden">
+            <CardContent className="p-6 md:p-8">
+              <h3 className="text-lg font-black mb-6 uppercase tracking-[0.2em] text-slate-400">Récapitulatif Détaillé</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Ciment</p>
+                  <p className="text-3xl font-black">{totals.ciment.toFixed(2)}</p>
                 </div>
-                <div className="bg-white p-4 rounded shadow-sm border-l-4 border-amber-600">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Gravier 3/8</p>
-                  <p className="text-2xl font-bold">{totals.g38.toFixed(2)}</p>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 3/8</p>
+                  <p className="text-3xl font-black">{totals.g38.toFixed(2)}</p>
                 </div>
-                <div className="bg-white p-4 rounded shadow-sm border-l-4 border-amber-500">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Gravier 8/16</p>
-                  <p className="text-2xl font-bold">{totals.g816.toFixed(2)}</p>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 8/16</p>
+                  <p className="text-3xl font-black">{totals.g816.toFixed(2)}</p>
                 </div>
-                <div className="bg-white p-4 rounded shadow-sm border-l-4 border-amber-400">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Gravier 0/3</p>
-                  <p className="text-2xl font-bold">{totals.g03.toFixed(2)}</p>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 0/3</p>
+                  <p className="text-3xl font-black">{totals.g03.toFixed(2)}</p>
                 </div>
-                <div className="bg-white p-4 rounded shadow-sm border-l-4 border-indigo-600">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Adjuvant</p>
-                  <p className="text-2xl font-bold">{totals.adjuvant.toFixed(2)}</p>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Adjuvant</p>
+                  <p className="text-3xl font-black">{totals.adjuvant.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </main>
+        </main>
+      </SidebarInset>
       <Toaster />
-    </div>
+    </>
   );
 }

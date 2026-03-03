@@ -46,7 +46,6 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
 
   const watchType = form.watch('type');
 
-  // Defer setting the current time to avoid hydration mismatch
   React.useEffect(() => {
     const now = new Date();
     const currentTime = now.toLocaleTimeString('fr-FR', { 
@@ -74,18 +73,19 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 bg-white p-6 rounded-lg border shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 bg-white p-4 md:p-6 rounded-2xl border shadow-xl">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-2">Saisie d'une décharge</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
           <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Matière</FormLabel>
+                <FormLabel className="font-bold uppercase text-[10px]">Matière</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir une matière" />
+                    <SelectTrigger className="font-bold">
+                      <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -105,10 +105,10 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
               name="gravelSize"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Taille Gravier</FormLabel>
+                  <FormLabel className="font-bold uppercase text-[10px]">Taille</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="font-bold">
                         <SelectValue placeholder="Taille" />
                       </SelectTrigger>
                     </FormControl>
@@ -129,9 +129,9 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantité (Tonnes)</FormLabel>
+                <FormLabel className="font-bold uppercase text-[10px]">Qté (Tonnes)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                  <Input type="number" step="0.01" placeholder="0.00" className="font-bold" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -143,9 +143,9 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
             name="time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Heure</FormLabel>
+                <FormLabel className="font-bold uppercase text-[10px]">Heure</FormLabel>
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input type="time" className="font-bold" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -158,16 +158,16 @@ export function DailyEntryForm({ onAdd }: DailyEntryFormProps) {
           name="observations"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Observations (Optionnel)</FormLabel>
+              <FormLabel className="font-bold uppercase text-[10px]">Observations</FormLabel>
               <FormControl>
-                <Textarea placeholder="Notes particulières..." {...field} />
+                <Textarea placeholder="Notes..." className="font-medium resize-none h-20" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full md:w-auto">
+        <Button type="submit" size="lg" className="w-full md:w-auto font-black uppercase tracking-widest text-xs shadow-lg">
           <PlusCircle className="mr-2 h-4 w-4" />
           Ajouter la décharge
         </Button>
