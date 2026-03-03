@@ -1,42 +1,32 @@
-# Gestion Production – Axiome Central à Béton
+# Gestion Production – Axiome Central à Béton (Version Cloud)
 
-Cette application Next.js permet de gérer les rapports journaliers de production pour une centrale à béton. Elle fonctionne localement avec IndexedDB et permet l'exportation en PDF et JSON.
+Cette application Next.js permet de gérer les rapports journaliers de production pour une centrale à béton. Elle utilise **Firebase Firestore** pour un stockage centralisé et sécurisé dans le cloud, permettant le partage en temps réel avec les superviseurs.
+
+## Fonctionnalités Cloud
+
+- **Stockage Centralisé** : Les données sont stockées sur Firebase Firestore (Google Cloud).
+- **Partage par Lien** : Générez un lien unique pour permettre à un supérieur de consulter vos rapports.
+- **Soumission Sécurisée** : Verrouillage des rapports une fois envoyés au supérieur.
+- **Multi-utilisateurs** : Accès simultané aux mêmes données pour l'employé et le supérieur.
+- **Exportation PDF** : Génération de rapports professionnels directement depuis les données cloud.
 
 ## Comment sauvegarder sur GitHub
 
-Pour mettre votre projet sur GitHub, suivez ces étapes dans votre terminal :
+Pour mettre votre projet sur GitHub :
 
-1.  **Créer un dépôt sur GitHub** : Allez sur [github.com](https://github.com) et créez un nouveau dépôt vide (ne cochez pas "Initialize this repository with a README").
-2.  **Initialiser Git localement** (si ce n'est pas déjà fait) :
-    ```bash
-    git init
-    ```
-3.  **Ajouter les fichiers** :
-    ```bash
-    git add .
-    ```
-4.  **Faire le premier commit** :
-    ```bash
-    git commit -m "Initialisation du projet Axiome Production"
-    ```
-5.  **Lier au dépôt GitHub** :
-    Remplacez `<URL_DU_DEPOT>` par l'URL de votre dépôt GitHub (ex: `https://github.com/votre-nom/votre-projet.git`).
-    ```bash
-    git remote add origin <URL_DU_DEPOT>
-    ```
-6.  **Envoyer le code** :
-    ```bash
-    git branch -M main
-    git push -u origin main
-    ```
-
-## Fonctionnalités
-
-- Saisie des décharges (Ciment, Gravier, Adjuvant).
-- Calcul automatique des totaux par type de matière.
-- Génération de rapports PDF professionnels.
-- Sauvegarde et Restauration des données via fichiers JSON.
-- Interface adaptée aux mobiles.
+1. **Créer un dépôt sur GitHub** : Allez sur [github.com](https://github.com).
+2. **Initialiser Git localement** :
+   ```bash
+   git init
+   git add .
+   git commit -m "Passage à la version Cloud Axiome"
+   ```
+3. **Lier et Envoyer** :
+   ```bash
+   git remote add origin <URL_DU_DEPOT>
+   git branch -M main
+   git push -u origin main
+   ```
 
 ## Installation Locale
 
@@ -44,3 +34,5 @@ Pour mettre votre projet sur GitHub, suivez ces étapes dans votre terminal :
 npm install
 npm run dev
 ```
+
+Les configurations Firebase sont situées dans `src/firebase/config.ts`.
