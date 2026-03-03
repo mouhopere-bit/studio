@@ -66,7 +66,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <CalendarView 
-              entries={[]} 
+              entries={entries || []} 
               selectedDate={selectedDate} 
               onSelectDate={onSelectDate} 
             />
@@ -78,8 +78,8 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
             Récapitulatif du jour
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <Card className="border shadow-sm bg-slate-50/50">
-              <CardHeader className="p-4 border-b">
+            <Card className="border shadow-sm bg-slate-50/50 rounded-2xl overflow-hidden">
+              <CardHeader className="p-4 border-b bg-white/50">
                 <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-slate-600">
                   <LayoutDashboard className="w-3.5 h-3.5 text-primary" />
                   Statistiques
@@ -110,7 +110,7 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
 
       <SidebarFooter className="p-4 border-t bg-slate-50">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3 p-2 bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-2 bg-white rounded-xl border shadow-sm">
             <div className="bg-primary/10 p-2 rounded-full">
               <UserIcon className="w-4 h-4 text-primary" />
             </div>

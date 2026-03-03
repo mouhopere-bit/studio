@@ -22,8 +22,8 @@ function Calendar({
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center mb-2",
-        caption_label: "text-sm font-bold text-slate-700",
+        caption: "flex justify-center pt-1 relative items-center mb-4",
+        caption_label: "text-sm font-bold text-slate-900 capitalize",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -31,22 +31,22 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse",
-        head_row: "flex w-full",
-        head_cell: "text-slate-500 rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-tighter text-center",
-        row: "flex w-full mt-2",
+        table: "w-full border-collapse space-y-1",
+        head_row: "flex w-full justify-between",
+        head_cell: "text-slate-400 rounded-md w-9 font-semibold text-[0.75rem] uppercase text-center",
+        row: "flex w-full mt-1 justify-between",
         cell: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent/50",
           "h-9 w-9"
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-medium aria-selected:opacity-100 hover:bg-slate-100 transition-colors"
+          "h-9 w-9 p-0 font-medium aria-selected:opacity-100 hover:bg-slate-100 transition-colors rounded-full"
         ),
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-bold",
-        day_today: "bg-slate-100 text-primary border border-primary/20",
+        day_today: "bg-slate-100 text-primary border border-primary/10",
         day_outside:
           "day-outside text-slate-300 opacity-50 aria-selected:bg-accent/50 aria-selected:text-slate-400 aria-selected:opacity-30",
         day_disabled: "text-slate-300 opacity-50",
