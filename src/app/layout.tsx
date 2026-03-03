@@ -2,10 +2,11 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'Gestion Production – Axiome Central à Béton',
-  description: 'Plateforme locale de gestion des rapports journaliers de production',
+  description: 'Plateforme cloud de gestion des rapports journaliers de production',
 };
 
 export default function RootLayout({
@@ -21,9 +22,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider defaultOpen={true}>
-          {children}
-        </SidebarProvider>
+        <FirebaseClientProvider>
+          <SidebarProvider defaultOpen={true}>
+            {children}
+          </SidebarProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

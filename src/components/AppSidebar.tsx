@@ -11,18 +11,20 @@ import {
   SidebarGroupContent
 } from '@/components/ui/sidebar';
 import { CalendarView } from '@/components/CalendarView';
-import { ProductionEntry } from '@/lib/db';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LayoutDashboard, Database } from 'lucide-react';
+import { LayoutDashboard, Database, User as UserIcon } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { Badge } from '@/components/ui/badge';
 
 interface AppSidebarProps {
-  entries: ProductionEntry[];
-  allEntries: ProductionEntry[];
+  entries: any[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 }
 
-export function AppSidebar({ entries, allEntries, selectedDate, onSelectDate }: AppSidebarProps) {
+export function AppSidebar({ entries, selectedDate, onSelectDate }: AppSidebarProps) {
+  const { user } = useUser();
+
   const totals = React.useMemo(() => {
     return entries.reduce((acc, curr) => {
       if (curr.type === 'Ciment') acc.ciment += curr.quantity;
@@ -45,10 +47,19 @@ export function AppSidebar({ entries, allEntries, selectedDate, onSelectDate }: 
             <Database className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="font-bold text-lg leading-tight">Axiome</h2>
-            <p className="text-xs opacity-80">Central à Béton</p>
+            <h2 className="font-bold text-lg leading-tight">Axiome Cloud</h2>
+            <p className="text-xs opacity-80">Rapports Journaliers</p>
           </div>
         </div>
+        {user && (
+          <div className="mt-4 p-2 bg-white/10 rounded-lg flex items-center gap-2">
+            <UserIcon className="w-4 h-4" />
+            <div className="text-[10px] truncate max-w-[150px]">
+              <p className="font-bold uppercase tracking-widest opacity-60">Session active</p>
+              <p className="font-mono">{user.uid.substring(0, 8)}...</p>
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent className="p-4 space-y-6">
         <SidebarGroup>
@@ -57,7 +68,7 @@ export function AppSidebar({ entries, allEntries, selectedDate, onSelectDate }: 
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <CalendarView 
-              entries={allEntries} 
+              entries={[]} // Data with dots can be added here later if needed
               selectedDate={selectedDate} 
               onSelectDate={onSelectDate} 
             />
