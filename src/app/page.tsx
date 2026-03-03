@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -15,8 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, query, where } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, initiateAnonymousSignIn } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
@@ -24,27 +23,31 @@ export default function Home() {
   const db = useFirestore();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
-  
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const dateStr = isMounted ? format(selectedDate, 'yyyy-MM-dd') : '';
 
   // Auto-login anonymously if not logged in for this MVP
   React.useEffect(() => {
-    if (!isUserLoading && !user && db) {
-      // initiateAnonymousSignIn(authInstance) is missing from barrel, using basic auth
+    if (isMounted && !isUserLoading && !user && db) {
       import('firebase/auth').then(({ getAuth, signInAnonymously }) => {
         signInAnonymously(getAuth());
       });
     }
-  }, [user, isUserLoading, db]);
+  }, [user, isUserLoading, db, isMounted]);
 
   // Firestore References
   const productionDayRef = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !dateStr) return null;
     return doc(db, 'employees', user.uid, 'productionDays', dateStr);
   }, [db, user, dateStr]);
 
   const dischargesQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !dateStr) return null;
     return collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
   }, [db, user, dateStr]);
 
@@ -52,21 +55,21 @@ export default function Home() {
   const { data: entries, isLoading: isEntriesLoading } = useCollection(dischargesQuery);
 
   const handleAddEntry = (data: any) => {
-    if (!db || !user || !dischargesQuery || !productionDayRef) return;
+    if (!db || !user || !dischargesQuery || !productionDayRef || !dateStr) return;
 
     if (dayInfo?.isSubmitted) {
       toast({ variant: 'destructive', title: "Action impossible", description: "Ce rapport a déjà été soumis." });
       return;
     }
 
-    // Ensure production day exists or update lastUpdated
-    updateDocumentNonBlocking(productionDayRef, {
+    // Ensure production day exists or update lastUpdated using set with merge
+    setDocumentNonBlocking(productionDayRef, {
       id: dateStr,
       employeeId: user.uid,
       date: dateStr,
       lastUpdated: serverTimestamp(),
       isSubmitted: dayInfo?.isSubmitted ?? false,
-    });
+    }, { merge: true });
 
     const colRef = collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
     addDocumentNonBlocking(colRef, {
@@ -74,7 +77,6 @@ export default function Home() {
       productionDayId: dateStr,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      // Denormalization for security rules as per backend.json
       productionDayIsSubmitted: dayInfo?.isSubmitted ?? false,
       employeeId: user.uid
     });
@@ -83,25 +85,22 @@ export default function Home() {
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    if (!db || !user || dayInfo?.isSubmitted) return;
+    if (!db || !user || !dateStr || dayInfo?.isSubmitted) return;
     const entryRef = doc(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges', entryId);
     deleteDocumentNonBlocking(entryRef);
     toast({ title: "Décharge supprimée" });
   };
 
   const handleToggleSubmit = () => {
-    if (!productionDayRef) return;
+    if (!productionDayRef || !user || !dateStr) return;
     const newStatus = !dayInfo?.isSubmitted;
     
-    updateDocumentNonBlocking(productionDayRef, {
+    setDocumentNonBlocking(productionDayRef, {
+      employeeId: user.uid,
       isSubmitted: newStatus,
       submissionTimestamp: newStatus ? serverTimestamp() : null,
       lastUpdated: serverTimestamp()
-    });
-
-    // We should also update all discharges with the new status for security rules consistency
-    // In a real app, this would be a batch or a cloud function. 
-    // Here we assume the UI prevents further writes.
+    }, { merge: true });
     
     toast({ 
       title: newStatus ? "Rapport soumis !" : "Rapport réouvert", 
@@ -124,7 +123,7 @@ export default function Home() {
     }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
   }, [entries]);
 
-  if (isUserLoading) {
+  if (!isMounted || isUserLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -231,7 +230,7 @@ export default function Home() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isEntriesLoading ? (
+                    {isDayLoading || isEntriesLoading ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-32 text-center text-muted-foreground animate-pulse">
                           Synchronisation des données...
