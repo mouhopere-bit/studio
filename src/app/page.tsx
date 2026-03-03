@@ -9,14 +9,14 @@ import { generateDailyReport } from '@/lib/pdf-gen';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu, Send, CheckCircle2, Lock, Share2, UserCheck } from 'lucide-react';
+import { FileDown, Trash2, Calendar as CalendarIcon, Database, Menu, Send, CheckCircle2, Lock, Share2, Eye } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
@@ -27,7 +27,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isMounted, setIsMounted] = React.useState(false);
 
-  // Determine the target employee ID from URL or current user
+  // Déterminer l'ID de l'employé cible (via URL ou utilisateur actuel)
   const empIdParam = searchParams.get('empId');
   const targetUid = empIdParam || user?.uid;
   const isReadOnly = user?.uid !== targetUid;
@@ -38,7 +38,7 @@ export default function Home() {
 
   const dateStr = isMounted ? format(selectedDate, 'yyyy-MM-dd') : '';
 
-  // Auto-login anonymously if not logged in
+  // Auto-connexion anonyme si nécessaire
   React.useEffect(() => {
     if (isMounted && !isUserLoading && !user && db) {
       import('firebase/auth').then(({ getAuth, signInAnonymously }) => {
@@ -47,7 +47,7 @@ export default function Home() {
     }
   }, [user, isUserLoading, db, isMounted]);
 
-  // Firestore References using targetUid
+  // Références Firestore
   const productionDayRef = useMemoFirebase(() => {
     if (!db || !targetUid || !dateStr) return null;
     return doc(db, 'employees', targetUid, 'productionDays', dateStr);
@@ -62,13 +62,14 @@ export default function Home() {
   const { data: entries, isLoading: isEntriesLoading } = useCollection(dischargesQuery);
 
   const handleAddEntry = (data: any) => {
-    if (!db || !user || !dischargesQuery || !productionDayRef || !dateStr || isReadOnly) return;
+    if (!db || !user || !productionDayRef || !dateStr || isReadOnly) return;
 
     if (dayInfo?.isSubmitted) {
-      toast({ variant: 'destructive', title: "Action impossible", description: "Ce rapport a déjà été soumis." });
+      toast({ variant: 'destructive', title: "Action impossible", description: "Le rapport est déjà soumis." });
       return;
     }
 
+    // S'assurer que le jour de production existe
     setDocumentNonBlocking(productionDayRef, {
       id: dateStr,
       employeeId: user.uid,
@@ -79,34 +80,33 @@ export default function Home() {
 
     const colRef = collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
     
+    // Nettoyer les données undefined pour Firestore
     const payload = {
       ...data,
       productionDayId: dateStr,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      productionDayIsSubmitted: dayInfo?.isSubmitted ?? false,
-      employeeId: user.uid
+      employeeId: user.uid,
+      productionDayIsSubmitted: dayInfo?.isSubmitted ?? false
     };
 
     Object.keys(payload).forEach(key => {
-      if ((payload as any)[key] === undefined) {
-        delete (payload as any)[key];
-      }
+      if ((payload as any)[key] === undefined) delete (payload as any)[key];
     });
 
     addDocumentNonBlocking(colRef, payload);
-    toast({ title: "Décharge ajoutée" });
+    toast({ title: "Décharge enregistrée" });
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    if (!db || !user || !dateStr || dayInfo?.isSubmitted || isReadOnly) return;
+    if (!db || !user || isReadOnly || dayInfo?.isSubmitted) return;
     const entryRef = doc(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges', entryId);
     deleteDocumentNonBlocking(entryRef);
     toast({ title: "Décharge supprimée" });
   };
 
   const handleToggleSubmit = () => {
-    if (!productionDayRef || !user || !dateStr || isReadOnly) return;
+    if (!productionDayRef || !user || isReadOnly) return;
     const newStatus = !dayInfo?.isSubmitted;
     
     setDocumentNonBlocking(productionDayRef, {
@@ -117,17 +117,17 @@ export default function Home() {
     }, { merge: true });
     
     toast({ 
-      title: newStatus ? "Rapport soumis !" : "Rapport réouvert", 
-      description: newStatus ? "Votre supérieur peut maintenant le consulter." : "Vous pouvez à nouveau modifier les données."
+      title: newStatus ? "Rapport soumis" : "Rapport réouvert",
+      description: newStatus ? "Disponible pour consultation par le supérieur." : "Modifications autorisées."
     });
   };
 
   const handleShareLink = () => {
     if (!user) return;
-    const url = new URL(window.location.href);
+    const url = new URL(window.location.origin);
     url.searchParams.set('empId', user.uid);
     navigator.clipboard.writeText(url.toString());
-    toast({ title: "Lien copié !", description: "Partagez ce lien avec votre supérieur." });
+    toast({ title: "Lien de partage copié !", description: "Envoyez ce lien à votre supérieur pour qu'il puisse voir ce rapport." });
   };
 
   const totals = React.useMemo(() => {
@@ -148,10 +148,7 @@ export default function Home() {
   if (!isMounted || isUserLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Database className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <h1 className="text-xl font-semibold italic text-slate-500">Connexion Axiome Cloud...</h1>
-        </div>
+        <Database className="w-12 h-12 text-primary animate-pulse" />
       </div>
     );
   }
@@ -165,71 +162,66 @@ export default function Home() {
         targetUid={targetUid || ''}
       />
       <SidebarInset>
-        <header className="sticky top-0 z-30 bg-primary/95 backdrop-blur-sm text-primary-foreground shadow-lg border-b border-primary/20">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="bg-white/10 hover:bg-white/20 transition-colors p-2 rounded-md">
-                <Menu className="w-5 h-5" />
-              </SidebarTrigger>
-              <div className="flex flex-col">
-                <h1 className="text-lg font-headline font-black tracking-tight leading-none">Axiome Production</h1>
-                <p className="text-[10px] opacity-80 uppercase tracking-widest font-bold">Système Cloud Central</p>
-              </div>
+        <header className="sticky top-0 z-30 bg-primary text-primary-foreground shadow-md h-16 flex items-center px-4 justify-between">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="bg-white/10 hover:bg-white/20">
+              <Menu className="w-5 h-5" />
+            </SidebarTrigger>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold leading-tight">Axiome Production</h1>
+              <span className="text-[10px] uppercase tracking-widest opacity-70">Plateforme Cloud Partagée</span>
             </div>
-            <div className="flex items-center gap-2">
-              {isReadOnly && (
-                <Badge className="bg-amber-500 text-white gap-1 px-3 py-1">
-                  <UserCheck className="w-3 h-3" /> Vue Supérieur
-                </Badge>
-              )}
-              {dayInfo?.isSubmitted ? (
-                <Badge className="bg-green-500 text-white gap-1 px-3 py-1">
-                  <CheckCircle2 className="w-3 h-3" /> Soumis
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-white border-white/30">Brouillon</Badge>
-              )}
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {isReadOnly ? (
+              <Badge variant="secondary" className="bg-blue-500 text-white gap-1">
+                <Eye className="w-3 h-3" /> Consultation
+              </Badge>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={handleShareLink} className="text-white hover:bg-white/10 gap-2">
+                <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Partager</span>
+              </Button>
+            )}
+            {dayInfo?.isSubmitted && (
+              <Badge className="bg-green-600 text-white gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Soumis
+              </Badge>
+            )}
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 py-6 md:py-8 space-y-6 md:space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-md border border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <CalendarIcon className="w-5 h-5 text-primary" />
+        <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-xl">
+                <CalendarIcon className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
+                <h2 className="text-xl font-bold text-slate-900 capitalize">
                   {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
                 </h2>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">État du Rapport</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Données synchronisées</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {!isReadOnly && (
-                <>
-                  <Button 
-                    onClick={handleToggleSubmit}
-                    variant={dayInfo?.isSubmitted ? "outline" : "default"}
-                    className={!dayInfo?.isSubmitted ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-                  >
-                    {dayInfo?.isSubmitted ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                    {dayInfo?.isSubmitted ? "Réouvrir" : "Soumettre au supérieur"}
-                  </Button>
-                  <Button onClick={handleShareLink} variant="outline" size="icon" title="Partager le lien">
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </>
+                <Button 
+                  onClick={handleToggleSubmit}
+                  variant={dayInfo?.isSubmitted ? "outline" : "default"}
+                  className={!dayInfo?.isSubmitted ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                >
+                  {dayInfo?.isSubmitted ? <Lock className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                  {dayInfo?.isSubmitted ? "Réouvrir le rapport" : "Soumettre au supérieur"}
+                </Button>
               )}
               <Button 
                 onClick={() => generateDailyReport(dateStr, entries || [])}
                 disabled={!entries || entries.length === 0}
                 variant="secondary"
-                className="bg-accent hover:bg-accent/90 text-white font-bold"
+                className="bg-slate-800 text-white hover:bg-slate-900"
               >
-                <FileDown className="mr-2 h-5 w-5" />
-                Rapport PDF
+                <FileDown className="mr-2 h-4 w-4" />
+                Télécharger PDF
               </Button>
             </div>
           </div>
@@ -237,110 +229,103 @@ export default function Home() {
           {!isReadOnly && !dayInfo?.isSubmitted ? (
             <DailyEntryForm onAdd={handleAddEntry} />
           ) : (
-            <Card className="bg-slate-50 border-dashed border-2 border-slate-200">
-              <CardContent className="flex items-center justify-center p-8 gap-4 text-slate-500">
-                <Lock className="w-8 h-8 opacity-50" />
-                <div className="text-center md:text-left">
-                  <p className="font-bold">{isReadOnly ? "Lecture Seule" : "Rapport Verrouillé"}</p>
-                  <p className="text-sm">
-                    {isReadOnly 
-                      ? "Vous consultez le rapport d'un autre utilisateur." 
-                      : "Ce rapport a été soumis. Réouvrez-le pour ajouter de nouvelles décharges."}
-                  </p>
-                </div>
+            <Card className="bg-slate-50/50 border-dashed">
+              <CardContent className="flex items-center justify-center p-10 gap-4 text-slate-400">
+                <Lock className="w-6 h-6" />
+                <p className="font-medium text-sm">
+                  {isReadOnly ? "Vous consultez le rapport en lecture seule." : "Rapport soumis et verrouillé."}
+                </p>
               </CardContent>
             </Card>
           )}
 
-          <Card className="border-none shadow-xl overflow-hidden bg-white rounded-2xl">
-            <CardHeader className="bg-slate-50 border-b p-4 md:p-6">
-              <CardTitle className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-700">Décharges du jour</CardTitle>
+          <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
+            <CardHeader className="bg-slate-50/80 border-b px-6 py-4">
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-500">Registre des décharges</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Heure</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Matière</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Quantité</TableHead>
-                      <TableHead className="hidden md:table-cell font-black uppercase text-[10px] tracking-widest">Observations</TableHead>
-                      {!dayInfo?.isSubmitted && !isReadOnly && <TableHead className="w-[50px]"></TableHead>}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-bold">Heure</TableHead>
+                    <TableHead className="font-bold">Désignation</TableHead>
+                    <TableHead className="font-bold">Poids (T)</TableHead>
+                    <TableHead className="hidden md:table-cell font-bold">Notes</TableHead>
+                    {!dayInfo?.isSubmitted && !isReadOnly && <TableHead className="w-[50px]"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isDayLoading || isEntriesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground animate-pulse italic">Chargement du cloud...</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isDayLoading || isEntriesLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground animate-pulse">
-                          Synchronisation des données...
+                  ) : !entries || entries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">Aucune donnée pour cette date.</TableCell>
+                    </TableRow>
+                  ) : (
+                    entries.map((entry) => (
+                      <TableRow key={entry.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="font-semibold text-slate-700">{entry.time}</TableCell>
+                        <TableCell>
+                          <span className="font-bold text-slate-900">{entry.type}</span>
+                          {entry.type === 'Gravier' && <Badge variant="outline" className="ml-2 font-bold">{entry.gravelSize}</Badge>}
                         </TableCell>
-                      </TableRow>
-                    ) : !entries || entries.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
-                          Aucune décharge enregistrée pour ce jour.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      entries.map((entry) => (
-                        <TableRow key={entry.id} className="hover:bg-slate-50/80 transition-colors">
-                          <TableCell className="font-bold text-slate-900">{entry.time}</TableCell>
+                        <TableCell className="font-bold text-primary">{entry.quantity.toFixed(2)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{entry.observations || '-'}</TableCell>
+                        {!dayInfo?.isSubmitted && !isReadOnly && (
                           <TableCell>
-                            <span className="font-black text-slate-700 uppercase tracking-tight">{entry.type}</span>
-                            {entry.type === 'Gravier' && <span className="text-[10px] ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded font-black">{entry.gravelSize}</span>}
+                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteEntry(entry.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
-                          <TableCell className="font-black text-primary">{entry.quantity.toFixed(2)} T</TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground truncate max-w-[200px]">
-                            {entry.observations || '-'}
-                          </TableCell>
-                          {!dayInfo?.isSubmitted && !isReadOnly && (
-                            <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => handleDeleteEntry(entry.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg bg-slate-900 text-white rounded-2xl overflow-hidden">
-            <CardContent className="p-6 md:p-8">
-              <h3 className="text-lg font-black mb-6 uppercase tracking-[0.2em] text-slate-400">Récapitulatif Détaillé</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Ciment</p>
-                  <p className="text-3xl font-black">{totals.ciment.toFixed(2)}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 3/8</p>
-                  <p className="text-3xl font-black">{totals.g38.toFixed(2)}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 8/16</p>
-                  <p className="text-3xl font-black">{totals.g816.toFixed(2)}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Gravier 0/3</p>
-                  <p className="text-3xl font-black">{totals.g03.toFixed(2)}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Adjuvant</p>
-                  <p className="text-3xl font-black">{totals.adjuvant.toFixed(2)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Card className="bg-slate-900 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Général</p>
+                <p className="text-2xl font-black">{totals.grandTotal.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-blue-600 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mb-1">Ciment</p>
+                <p className="text-2xl font-black">{totals.ciment.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-amber-600 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 3/8</p>
+                <p className="text-2xl font-black">{totals.g38.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-amber-600 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 8/16</p>
+                <p className="text-2xl font-black">{totals.g816.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-amber-600 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-1">G 0/3</p>
+                <p className="text-2xl font-black">{totals.g03.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-indigo-600 text-white border-none">
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200 mb-1">Adjuvant</p>
+                <p className="text-2xl font-black">{totals.adjuvant.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </SidebarInset>
       <Toaster />

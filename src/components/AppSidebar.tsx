@@ -7,12 +7,14 @@ import {
   SidebarHeader, 
   SidebarGroup, 
   SidebarGroupLabel,
-  SidebarGroupContent
+  SidebarGroupContent,
+  SidebarFooter
 } from '@/components/ui/sidebar';
 import { CalendarView } from '@/components/CalendarView';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LayoutDashboard, Database, User as UserIcon } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { LayoutDashboard, Database, User as UserIcon, LogOut } from 'lucide-react';
+import { useUser, useAuth } from '@/firebase';
+import { Button } from '@/components/ui/button';
 
 interface AppSidebarProps {
   entries: any[];
@@ -23,6 +25,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: AppSidebarProps) {
   const { user } = useUser();
+  const auth = useAuth();
 
   const totals = React.useMemo(() => {
     return entries.reduce((acc, curr) => {
@@ -38,32 +41,28 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
     }, { ciment: 0, adjuvant: 0, g38: 0, g816: 0, g03: 0, grandTotal: 0 });
   }, [entries]);
 
+  const handleLogout = () => {
+    auth.signOut();
+  };
+
   return (
-    <Sidebar className="border-r border-slate-200">
-      <SidebarHeader className="p-4 bg-primary text-primary-foreground">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
+    <Sidebar className="border-r border-slate-200 bg-white">
+      <SidebarHeader className="p-6 bg-primary text-primary-foreground">
+        <div className="flex items-center gap-4">
+          <div className="bg-white/20 p-2.5 rounded-xl">
             <Database className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="font-bold text-lg leading-tight">Axiome Cloud</h2>
-            <p className="text-xs opacity-80">Rapports Journaliers</p>
+          <div className="flex flex-col">
+            <h2 className="font-bold text-lg">Axiome Cloud</h2>
+            <p className="text-[10px] uppercase tracking-widest opacity-70 font-bold">Gestion Production</p>
           </div>
         </div>
-        {targetUid && (
-          <div className="mt-4 p-2 bg-white/10 rounded-lg flex items-center gap-2">
-            <UserIcon className="w-4 h-4" />
-            <div className="text-[10px] truncate max-w-[150px]">
-              <p className="font-bold uppercase tracking-widest opacity-60">Consultation ID</p>
-              <p className="font-mono">{targetUid.substring(0, 12)}...</p>
-            </div>
-          </div>
-        )}
       </SidebarHeader>
+      
       <SidebarContent className="p-4 space-y-6">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mb-2">
-            Navigation Temporelle
+          <SidebarGroupLabel className="text-slate-400 font-bold uppercase text-[10px] mb-2 tracking-widest">
+            Sélection de la date
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <CalendarView 
@@ -75,30 +74,32 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mb-2">
-            Vue d'ensemble du jour
+          <SidebarGroupLabel className="text-slate-400 font-bold uppercase text-[10px] mb-2 tracking-widest">
+            Récapitulatif du jour
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <Card className="border-none shadow-md overflow-hidden bg-slate-50">
-              <CardHeader className="p-3 border-b bg-slate-100">
-                <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-700 uppercase tracking-tight">
-                  <LayoutDashboard className="w-4 h-4 text-primary" />
-                  Résumé du Jour
+            <Card className="border shadow-sm bg-slate-50/50">
+              <CardHeader className="p-4 border-b">
+                <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-slate-600">
+                  <LayoutDashboard className="w-3.5 h-3.5 text-primary" />
+                  Statistiques
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-3 space-y-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Total Général</span>
-                  <span className="text-2xl font-black text-primary">{totals.grandTotal.toFixed(2)} <span className="text-xs font-medium text-muted-foreground italic">Tonnes</span></span>
+              <CardContent className="p-4 space-y-4">
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Poids Total</span>
+                  <span className="text-2xl font-black text-primary">
+                    {totals.grandTotal.toFixed(1)} <span className="text-[10px] font-medium text-slate-400 italic">Tonnes</span>
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 bg-blue-50 rounded shadow-sm border border-blue-100">
-                    <p className="text-[10px] text-blue-800 font-black uppercase">Ciment</p>
-                    <p className="text-lg font-bold text-blue-900">{totals.ciment.toFixed(2)}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase">Ciment</p>
+                    <p className="text-sm font-bold text-slate-800">{totals.ciment.toFixed(1)} T</p>
                   </div>
-                  <div className="p-2 bg-purple-50 rounded shadow-sm border border-purple-100">
-                    <p className="text-[10px] text-purple-800 font-black uppercase">Adjuvant</p>
-                    <p className="text-lg font-bold text-purple-900">{totals.adjuvant.toFixed(2)}</p>
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase">Adjuvant</p>
+                    <p className="text-sm font-bold text-slate-800">{totals.adjuvant.toFixed(1)} T</p>
                   </div>
                 </div>
               </CardContent>
@@ -106,6 +107,27 @@ export function AppSidebar({ entries, selectedDate, onSelectDate, targetUid }: A
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t bg-slate-50">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 p-2 bg-white rounded-lg border shadow-sm">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <UserIcon className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Utilisateur</p>
+              <p className="text-[11px] font-mono truncate text-slate-600">
+                {user?.isAnonymous ? 'Visiteur Anonyme' : user?.email || user?.uid.substring(0, 8)}
+              </p>
+            </div>
+          </div>
+          {user && !user.isAnonymous && (
+            <Button variant="outline" size="sm" onClick={handleLogout} className="w-full text-destructive hover:bg-destructive/10">
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
+          )}
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }
