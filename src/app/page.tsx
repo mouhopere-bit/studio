@@ -72,14 +72,24 @@ export default function Home() {
     }, { merge: true });
 
     const colRef = collection(db, 'employees', user.uid, 'productionDays', dateStr, 'discharges');
-    addDocumentNonBlocking(colRef, {
+    
+    // Sanitize payload to remove undefined values which Firestore doesn't support
+    const payload = {
       ...data,
       productionDayId: dateStr,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       productionDayIsSubmitted: dayInfo?.isSubmitted ?? false,
       employeeId: user.uid
+    };
+
+    Object.keys(payload).forEach(key => {
+      if ((payload as any)[key] === undefined) {
+        delete (payload as any)[key];
+      }
     });
+
+    addDocumentNonBlocking(colRef, payload);
 
     toast({ title: "Décharge ajoutée", description: "Enregistré sur le cloud" });
   };
