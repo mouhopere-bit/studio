@@ -175,7 +175,7 @@ export default function Home() {
             </SidebarTrigger>
             <div className="flex flex-col">
               <h1 className="text-lg font-bold leading-tight">Axiome Production</h1>
-              <span className="text-[10px] uppercase tracking-widest opacity-70">Plateforme Cloud Partagée</span>
+              <span className="text-[10px] uppercase tracking-widest opacity-70">Axiome Centrale à Béton</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
